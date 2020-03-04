@@ -16,6 +16,7 @@ class datastream():
 		self.domain = ''
 		self.path = ''
 		self.links = ['','','']
+		self.c1 = [[],[],[]]
 
 
 	def getlinks(self):
@@ -37,13 +38,46 @@ class datastream():
 
 		# collect the links on the page via requests HTML
 
-		# page = requests.get(sys.argv[1]).text
-		# soup = BeautifulSoup(page, features='lxml')
-		# for link in soup.find_all('a'):
-		# 	print(link.get('href'))
+		page = requests.get(sys.argv[1]).text
+		soup = BeautifulSoup(page, features='lxml')
+		for link in soup.find_all('a'):
+			href = link.get('href')
+			if href is not None and not href.startswith('#'):
+				# relative paths of the same hostname
+				if href.startswith('/'):
+					if href not in self.c1[0]:
+						self.c1[0].append(href)
+
+				elif self.hostname in href:
+					if href not in self.c1[0]:
+						self.c1[0].append(href)
+
+				#links on the same domain
+				elif self.domain in href: 
+					if href not in self.c1[1]:
+						self.c1[1].append(href)
+
+				#links from a different domain
+				elif href not in self.c1[2]:
+					self.c1[2].append(href)
+
+
+
+
+
+
 
 	def output(self	):
-		print(f'TLD: {self.TLD}\nDOMAIN: {self.domain}\nHOSTNAME: {self.hostname}\nPATH: {self.path}\nLINKS:\n')
+		print(f'TLD: {self.TLD}\nDOMAIN: {self.domain}\nHOSTNAME: {self.hostname}\nPATH: {self.path}\nLINKS:')
+		print(f'  Same Hostname:')
+		for entry in self.c1[0]:
+			print('    '+self.hostname+entry)
+		print('   Same domain:')
+		for entry in self.c1[1]:
+			print('    '+entry)
+		print('   External domain:')
+		for entry in self.c1[2]:
+			print('    '+entry)
 
 
 def main():
