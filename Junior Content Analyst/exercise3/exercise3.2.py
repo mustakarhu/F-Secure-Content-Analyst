@@ -9,9 +9,8 @@ import nltk
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 from nltk.stem import SnowballStemmer
-
-from sklearn.svm import OneClassSVM
-from sklearn.feature_extraction.text import TfidfVectorizer
+import pickle
+import classify
 
 SHOW_OUTPUT = False
 
@@ -34,6 +33,10 @@ exclude_list = [
 
 
 def tokenize_and_stem(text_list):
+    """
+    :param text_list: list of input texts from the webpages
+    :return: stemmed and tokenized word list
+    """
     stop_words = set(stopwords.words('english'))
     words = []
     for e in text_list:
@@ -53,7 +56,7 @@ if __name__ == '__main__':
     assert len(sys.argv) == 2, "Invalid input format. Please include the URL name to be evaluated as an input argument"
     URL = sys.argv[1]
     # read dictionary
-    dictionary = pd.read_csv('dictionary.csv')
+    dictionary = pd.read_csv('./dictionaries/gambling_dictionary.csv')
 
     if SHOW_OUTPUT:
         print('setting up Selenium Chromedriver')
@@ -97,27 +100,21 @@ if __name__ == '__main__':
     # scoring of entries.
     score = 0
     total_score = len(aggregate.keys())
-
     for word in aggregate.keys():
         if word in dictionary.entry.tolist():
             score += 1
-
     # if more than 2/3 of the words are found returns as a Gambling website
     x = 'Gambling Site' if score/total_score > 0.66 else 'Not Gambling site'
-    print(x)
+
+    print(f'score for {URL}: {x}')
     if SHOW_OUTPUT:
         print(f'score: {score/total_score}')
 
-    # # possible improvement - using one-class SVM.
-    # vectorizer = TfidfVectorizer(max_features=1000, ngram_range=(1, 1), sublinear_tf=True)
-    # X = vectorizer.fit_transform(dictionary[dictionary.entry.notna()])
-    # data_features = vectorizer.fit_transform(dictionary[dictionary.entry.notna()])
-    # clf = OneClassSVM(nu=0.1, kernel="rbf", gamma=0.1)
-    # clf.fit(data_features)
-    # test_data_features = vectorizer.transform(pd.Series(list(aggregate.keys())))
-    # if SHOW_OUTPUT:
-    #     print(clf.predict(test_data_features))
-    #     print(clf.decision_function(test_data_features))
+    print('Trying Naive Bayes classifier')
+    with open('naivebayes_nltk.pickle', 'rb') as f:
+        clf = pickle.load(f)
 
-
-
+    dict_features = dictionary.entry.tolist()[:100]
+    test_features = list(aggregate.keys())[:100]
+    x_test = classify.get_features_list(test_features, dict_features)
+    print("naive bayes classification", clf.classify(x_test))
